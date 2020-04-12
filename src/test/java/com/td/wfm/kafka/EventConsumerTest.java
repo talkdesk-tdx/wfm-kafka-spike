@@ -1,18 +1,16 @@
 package com.td.wfm.kafka;
 
-import io.quarkus.arc.AlternativePriority;
 import io.quarkus.test.junit.QuarkusTest;
-import io.smallrye.reactive.messaging.annotations.Merge;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 import org.junit.jupiter.api.Test;
 
-import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Slf4j
@@ -20,7 +18,7 @@ public class EventConsumerTest {
 
     @Inject
     @Channel("write-string")
-    Emitter<String> stringEmitter;
+    Emitter<String> emitter;
 
     @Inject
     TestEventConsumerService service;
@@ -30,9 +28,11 @@ public class EventConsumerTest {
         log.info("[Thread id in test]: {}", Thread.currentThread().getId());
         final String value = "This is a test string";
 
-        stringEmitter.send(value);
+        emitter.send(value);
 
-        assertTrue(service.hasString(value, 3));
+        await()
+            .atMost(Duration.of(3, ChronoUnit.SECONDS))
+            .until(() -> service.getStrings().contains(value));
     }
 
 }
